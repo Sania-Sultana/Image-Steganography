@@ -3,7 +3,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
-import java.awt.image.BufferedImage;
 import java.io.File;
 
 public class Main {
@@ -95,6 +94,14 @@ public class Main {
         statusLabel.setForeground(new Color(90, 100, 110));
         statusLabel.setBorder(new EmptyBorder(8, 2, 0, 2));
 
+        JPasswordField encodePasswordField = new JPasswordField();
+        encodePasswordField.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 15));
+        encodePasswordField.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JPasswordField decodePasswordField = new JPasswordField();
+        decodePasswordField.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 15));
+        decodePasswordField.setBorder(new EmptyBorder(10, 10, 10, 10));
+
         JLabel encodePreview = createPreviewPlaceholder("Image preview");
         JLabel decodePreview = createPreviewPlaceholder("Image preview");
 
@@ -142,7 +149,13 @@ public class Main {
                 outputFile = new File(outputFile.getParentFile(), outputFile.getName() + ".png");
             }
 
-            boolean success = SteganographyEncoder.encode(encodeFile[0].getAbsolutePath(), outputFile.getAbsolutePath(), message);
+            String encodePassword = new String(encodePasswordField.getPassword()).trim();
+            boolean success = SteganographyEncoder.encode(
+                encodeFile[0].getAbsolutePath(),
+                outputFile.getAbsolutePath(),
+                message,
+                encodePassword.isEmpty() ? null : encodePassword
+            );
             if (success) {
                 setStatus(statusLabel, statusBadge, "Message encoded successfully.", new Color(46, 204, 113));
                 JOptionPane.showMessageDialog(frame, "Encoded image saved: " + outputFile.getAbsolutePath(), "Success", JOptionPane.INFORMATION_MESSAGE);
@@ -170,7 +183,11 @@ public class Main {
                 return;
             }
 
-            String message = SteganographyDecoder.decode(decodeFile[0].getAbsolutePath());
+            String decodePassword = new String(decodePasswordField.getPassword()).trim();
+            String message = SteganographyDecoder.decode(
+                decodeFile[0].getAbsolutePath(),
+                decodePassword.isEmpty() ? null : decodePassword
+            );
             resultArea.setText(message);
             setStatus(statusLabel, statusBadge, "Message decoded.", new Color(230, 126, 34));
         });
@@ -181,12 +198,12 @@ public class Main {
         JPanel encodePanel = createCard();
         encodePanel.setLayout(new BorderLayout(14, 14));
         encodePanel.add(createCardHeader("Encode", "Hide a message in an image"), BorderLayout.NORTH);
-        encodePanel.add(buildEncodeBody(browseEncodeButton, selectedEncodeField, encodePreview, messageArea, encodeButton), BorderLayout.CENTER);
+        encodePanel.add(buildEncodeBody(browseEncodeButton, selectedEncodeField, encodePreview, messageArea, encodePasswordField, encodeButton), BorderLayout.CENTER);
 
         JPanel decodePanel = createCard();
         decodePanel.setLayout(new BorderLayout(14, 14));
         decodePanel.add(createCardHeader("Decode", "Extract the hidden message"), BorderLayout.NORTH);
-        decodePanel.add(buildDecodeBody(browseDecodeButton, selectedDecodeField, decodePreview, decodeButton, resultArea), BorderLayout.CENTER);
+        decodePanel.add(buildDecodeBody(browseDecodeButton, selectedDecodeField, decodePreview, decodePasswordField, decodeButton, resultArea), BorderLayout.CENTER);
 
         center.add(encodePanel);
         center.add(decodePanel);
@@ -198,7 +215,7 @@ public class Main {
         frame.setVisible(true);
     }
 
-    private static JPanel buildEncodeBody(JButton browseButton, JLabel selectedField, JLabel preview, JTextArea messageArea, JButton encodeButton) {
+    private static JPanel buildEncodeBody(JButton browseButton, JLabel selectedField, JLabel preview, JTextArea messageArea, JPasswordField passwordField, JButton encodeButton) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -216,12 +233,20 @@ public class Main {
         panel.add(label);
         panel.add(Box.createVerticalStrut(8));
         panel.add(wrapScroll(messageArea));
+        panel.add(Box.createVerticalStrut(10));
+
+        JLabel passwordLabel = new JLabel("Password (optional)");
+        passwordLabel.setFont(passwordLabel.getFont().deriveFont(Font.BOLD, 14f));
+        passwordLabel.setForeground(new Color(31, 41, 55));
+        panel.add(passwordLabel);
+        panel.add(Box.createVerticalStrut(8));
+        panel.add(wrapField(passwordField));
         panel.add(Box.createVerticalStrut(12));
         panel.add(encodeButton);
         return panel;
     }
 
-    private static JPanel buildDecodeBody(JButton browseButton, JLabel selectedField, JLabel preview, JButton decodeButton, JTextArea resultArea) {
+    private static JPanel buildDecodeBody(JButton browseButton, JLabel selectedField, JLabel preview, JPasswordField passwordField, JButton decodeButton, JTextArea resultArea) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -239,6 +264,14 @@ public class Main {
         panel.add(label);
         panel.add(Box.createVerticalStrut(8));
         panel.add(wrapScroll(resultArea));
+        panel.add(Box.createVerticalStrut(10));
+
+        JLabel passwordLabel = new JLabel("Password (if encrypted)");
+        passwordLabel.setFont(passwordLabel.getFont().deriveFont(Font.BOLD, 14f));
+        passwordLabel.setForeground(new Color(31, 41, 55));
+        panel.add(passwordLabel);
+        panel.add(Box.createVerticalStrut(8));
+        panel.add(wrapField(passwordField));
         panel.add(Box.createVerticalStrut(12));
         panel.add(decodeButton);
         return panel;
@@ -249,6 +282,16 @@ public class Main {
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(210, 220, 235), 2));
         scrollPane.getViewport().setBackground(Color.WHITE);
         return scrollPane;
+    }
+
+    private static JPanel wrapField(JComponent component) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createLineBorder(new Color(210, 220, 235), 2));
+        component.setPreferredSize(new Dimension(0, 40));
+        panel.add(component, BorderLayout.CENTER);
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        return panel;
     }
 
     private static JPanel createCard() {
@@ -348,10 +391,6 @@ public class Main {
         public GradientPanel(Color start, Color end) {
             this.startColor = start;
             this.endColor = end;
-        }
-
-        public GradientPanel() {
-            this(new Color(15, 23, 42), new Color(30, 41, 59));
         }
 
         @Override

@@ -5,6 +5,7 @@ This folder contains the Java desktop version of the image steganography app.
 ## What it does
 
 - Encode a secret message into an image
+- Optionally encrypt message with a password before embedding
 - Decode a hidden message from a stego image
 - Uses file-picker dialogs, so no manual path typing is needed
 - Includes image preview panes and a cleaner card-based desktop UI
@@ -13,8 +14,10 @@ This folder contains the Java desktop version of the image steganography app.
 
 - Upload/select an image for encoding
 - Type a secret message
+- Optionally set a password during encoding
 - Save the encoded image as PNG
 - Upload/select a stego image for decoding
+- Enter password during decoding if the message was encrypted
 - View the hidden message on screen
 
 ## Run
@@ -31,3 +34,4 @@ java -cp "NN steganography" Main
 - Encoded images are saved as PNG to preserve hidden bits.
 - If the image is too small for the message, encoding will fail with an error.
 - If an image does not contain hidden data, decoding will return a clear message.
+- Password-protected payloads use PBKDF2 + AES-GCM in Java.
